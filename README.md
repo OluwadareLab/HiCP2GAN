@@ -1,93 +1,206 @@
-# HiCP2GAN
+# HiCP2GAN: A plug-and-play foundation model–based GAN for Hi-C enhancement
 
-Plug-and-play Hi-C enhancement: a **trainable generator** from `Models/` plus a **HiCFoundation** vision backbone used as the discriminator (`HiCP2GAN_train.py`). This repository includes **standalone data preprocessing** (HiCARN-style), **training**, and **40×40 inference**.
+**HiCP2GAN** is a plug-and-play adversarial framework for Hi-C super-resolution: a **trainable generator** from `Models/` is paired with a **HiCFoundation** vision transformer used as the **discriminator** (`HiCP2GAN_train.py`). This repository ships **standalone HiCARN-style data preprocessing** (`data/`), **training**, and **40×40 inference** (`predict_40x40.py`).
 
-## Setup
+Bioinformatics Lab, University of Colorado Colorado Springs
 
-```bash
-cd /path/to/HiCP2GAN
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
+### Developer
 
-Point Python at the repo root when running scripts (or install as a package):
+**Samuel Olowofila**  
 
-```bash
-export PYTHONPATH="/path/to/HiCP2GAN${PYTHONPATH:+:$PYTHONPATH}"
-```
+Department of Computer Science  
+
+University of Colorado Colorado Springs  
+
+Email: [solowofi@uccs.edu](mailto:solowofi@uccs.edu)
+
+### Contact
+
+**Oluwatosin Oluwadare, PhD**  
+
+Department of Computer Science  
+
+University of Colorado Colorado Springs  
+
+Email: [oluwatosin.oluwadare@unt.edu](mailto:oluwatosin.oluwadare@unt.edu)
+
+---
+
+## Overview
+
+- **Environment:** install dependencies locally (**Build instructions**) or use the published Docker image **`oluwadarelab/hicp2gan:latest`** (see **Docker image** under Build instructions).
+- **Preprocessing:** three independent scripts (`Read_Data.py`, `Downsample.py`, `Generate.py`) under `data/`, plus an optional multi-cell driver in `scripts/`.
+- **Training:** `HiCP2GAN_train.py` optimizes the generator and foundation-based discriminator on paired LR/HR patch `.npz` files.
+- **Inference:** `predict_40x40.py` loads a saved **generator** checkpoint and writes chromosome-level predictions under `predict/`.
+
+---
+
+## Build instructions
+
+1. **Clone** this repository and enter the directory (use your published Git URL):
+   ```bash
+   git clone <repository-url> && cd HiCP2GAN
+   ```
+
+2. **Create a virtual environment** (recommended) and install dependencies:
+   ```bash
+   python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Set `PYTHONPATH`** so `Models`, `Utils`, and `data` resolve when you run scripts from any working directory:
+   ```bash
+   export PYTHONPATH="${PWD}${PYTHONPATH:+:$PYTHONPATH}"
+   ```
+
+4. **Optional:** define where data live (overrides defaults in `data/Arg_Parser.py`):
+   ```bash
+   export HICP2GAN_DATA_ROOT="/path/to/your/data/tree"
+   export HICARN_DATA_ROOT="$HICP2GAN_DATA_ROOT"   # legacy alias, optional
+   ```
+
+### Docker image (reproducible environment)
+
+HiCP2GAN is also distributed as a **Docker** image on Docker Hub. For a containerized setup (CUDA + dependencies pre-installed), follow the steps below instead of—or after—cloning the repository on the host.
+
+1. **Clone** this repository and `cd` into it (same as step 1 above), so your working tree is available to mount into the container.
+
+2. **Pull** the HiCP2GAN image from Docker Hub:
+   ```bash
+   docker pull oluwadarelab/hicp2gan:latest
+   ```
+
+3. **Verify** the image is present:
+   ```bash
+   docker image ls | grep hicp2gan
+   ```
+
+4. **Run** a container with the current directory mounted (adjust GPU flags if you do not use NVIDIA GPUs). The example below mounts `${PWD}` at the same path inside the container and sets the working directory so relative paths match the host:
+   ```bash
+   docker run --rm -it --gpus all --name hicp2gan -v "${PWD}:${PWD}" -w "${PWD}" oluwadarelab/hicp2gan:latest
+   ```
+
+   Inside the shell, set `PYTHONPATH` and data locations if they are not already configured in the image:
+   ```bash
+   export PYTHONPATH="${PWD}${PYTHONPATH:+:$PYTHONPATH}"
+   export HICP2GAN_DATA_ROOT="/path/to/your/data/tree"   # mount extra volumes if data live outside this clone
+   ```
+
+   Then run preprocessing, training, or inference as documented below (e.g. `python data/Read_Data.py …`, `python HiCP2GAN_train.py …`, `python predict_40x40.py …`).
+
+**Notes:** `--gpus all` requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). For CPU-only hosts, omit `--gpus all` (training will be slow). If your Hi-C data live outside the clone, add another `-v /host/data:/host/data` and point `HICP2GAN_DATA_ROOT` at that path.
+
+---
+
+## Dependencies
+
+Recommended stack (see `requirements.txt` for minimum versions):
+
+- Python ≥ 3.9
+- PyTorch ≥ 2.0, torchvision ≥ 0.15
+- NumPy, SciPy, pandas, tqdm
+- Matplotlib, scikit-learn, timm *(training / HiCFoundation discriminator)*
+
+GPU and a suitable CUDA driver are strongly recommended for training.
+
+---
+
+## Data sources (Rao et al.)
+
+Intrachromosomal Hi-C matrices from **Rao et al., 2014** are available under GEO [**GSE63525**](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525). Examples used in related lab workflows include primary intrachromosomal releases for [**GM12878**](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63525&format=file&file=GSE63525%5FGM12878%5Fprimary%5Fintrachromosomal%5Fcontact%5Fmatrices%2Etar%2Egz), [**K562**](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63525&format=file&file=GSE63525%5FK562%5Fintrachromosomal%5Fcontact%5Fmatrices%2Etar%2Egz), [**HMEC**](https://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525%5FHMEC%5Fintrachromosomal%5Fcontact%5Fmatrices.tar.gz), and [**NHEK**](https://ftp.ncbi.nlm.nih.gov/geo/series/GSE63nnn/GSE63525/suppl/GSE63525%5FNHEK%5Fintrachromosomal%5Fcontact%5Fmatrices.tar.gz).
+
+Place extracted **RAWobserved** / normalization files under the raw tree expected by `Read_Data.py` (see **Data layout** below).
+
+---
 
 ## Data layout and environment
 
-All preprocessing scripts read **`root_dir`** from `data/Arg_Parser.py`. By default `root_dir` is `Data/R16_down`. Override with:
+All preprocessing scripts read **`root_dir`** from `data/Arg_Parser.py`. Default: `Data/R16_down`. Override with `HICP2GAN_DATA_ROOT` or `HICARN_DATA_ROOT` (see Build instructions).
 
-```bash
-export HICP2GAN_DATA_ROOT="/path/to/your/data/tree"
-# optional legacy alias:
-export HICARN_DATA_ROOT="$HICP2GAN_DATA_ROOT"
-```
-
-Expected layout under `root_dir` (per cell line):
+Under `root_dir` (per cell line):
 
 - **Raw (Rao-style):** `{root_dir}/raw/{CELL}/…/10kb_resolution_intrachromosomal/chr*/…`
 - **Intermediate matrices:** `{root_dir}/{CELL}/mat/chrN_10kb.npz`, `chrN_40kb.npz`, …
 - **Training patches:** `{root_dir}/{CELL}/data_40_40/hicarn_10kb40kb_c40_s40_b201_nonpool_{train,valid,…}.npz`
 
-Chromosome splits for `train` / `valid` / cell-line-specific test keys are defined in `data/Arg_Parser.py` (`set_dict`).
+Chromosome splits (`train`, `valid`, cell-line-specific tests) live in `data/Arg_Parser.py` (`set_dict`).
 
 ---
 
-## 1. Data preprocessing
+## Data preprocessing
 
-Preprocessing is split into **three standalone scripts** under `data/` (same logical stages as the original HiCARN workflow). Run them from anywhere as long as `PYTHONPATH` includes the repository root.
+Preprocessing follows the same **three-stage** outline as the original HiCARN workflow: one Python file per stage under `data/`.
 
-### Stage A — raw contacts to dense `.npz` (per chromosome)
+### 1. Processing raw data → `mat/*.npz`
+
+Produces `{root_dir}/{CELL}/mat/chr*_10kb.npz`:
 
 ```bash
 python data/Read_Data.py -c GM12878 -hr 10kb -q MAPQGE30 -n KRnorm
 ```
 
-Writes `{root_dir}/GM12878/mat/chr*_10kb.npz`.
+| Argument | Description |
+|----------|-------------|
+| `-c` | **Required.** Cell line folder name under `{root_dir}/raw/`. |
+| `-hr` | Resolution: `5kb`, `10kb`, … (default `10kb`). |
+| `-q` | `MAPQGE30` or `MAPQG0` (default `MAPQGE30`). |
+| `-n` | `KRnorm`, `SQRTVCnorm`, or `VCnorm` (default `KRnorm`). |
 
-### Stage B — downsample high-res to low-res
+### 2. Downsampling high-res → low-res
+
+Writes `chr*_40kb.npz` beside the high-res `.npz` in `mat/`:
 
 ```bash
 python data/Downsample.py -c GM12878 -hr 10kb -lr 40kb -r 16
 ```
 
-Adjust **`-r`** to match your target resolution (e.g. 16× for 10kb→40kb, or 64× if that matches your experiment). Writes `chr*_40kb.npz` next to the 10kb files in `mat/`.
+| Argument | Description |
+|----------|-------------|
+| `-hr` | Source resolution (e.g. `10kb`). |
+| `-lr` | Target low resolution label in filenames (e.g. `40kb`). |
+| `-r` | Downsampling factor (e.g. `16` for 10kb→40kb; use `64` if that matches your design). |
+| `-c` | Cell line. |
 
-### Stage C — build patch datasets (`train` / `valid` / test splits)
+### 3. Creating train / validation / test patch datasets
+
+Edit **`set_dict`** in `data/Arg_Parser.py` if you need different chromosome splits. Example for **train**:
 
 ```bash
 python data/Generate.py -c GM12878 -hr 10kb -lr 40kb -lrc 100 \
   -s train -chunk 40 -stride 40 -bound 201 -scale 1 -type max
 ```
 
-Repeat **`-s`** for `valid`, `GM12878_test`, `NHEK_test`, etc. (see `set_dict` in `data/Arg_Parser.py`). Outputs land in:
+Repeat with `-s valid`, `GM12878_test`, `NHEK_test`, `HMEC_test`, `K562_test`, etc.
 
-`{root_dir}/{CELL}/data_40_40/hicarn_{hr}{lr}_c40_s40_b201_nonpool_{split}.npz`.
+| Argument | Description |
+|----------|-------------|
+| `-s` | Split name (must exist in `set_dict`). |
+| `-chunk`, `-stride` | Submatrix size and step (often both `40`). |
+| `-bound` | Genomic distance cap in bins (e.g. `201`). |
+| `-lrc` | LR clamp / scale anchor (e.g. `100`). |
+| `-scale`, `-type` | Pooling: typically `-scale 1` and `-type max`. |
 
-### Optional: batch driver for several cell lines
+Outputs: `{root_dir}/{CELL}/data_40_40/hicarn_{hr}{lr}_c40_s40_b201_nonpool_{split}.npz`.
+
+### Optional: batch driver (several cell lines)
 
 ```bash
-export HICP2GAN_DATA_ROOT="/path/to/Data/R64_down"   # example; edit script defaults if needed
+export HICP2GAN_DATA_ROOT="/path/to/Data/R64_down"   # example
 bash scripts/generate_data_all_cell_lines.sh
 ```
 
-The shell script sets `PYTHONPATH`, exports `HICP2GAN_DATA_ROOT`, and calls `data/Read_Data.py`, `data/Downsample.py`, and `data/Generate.py` in sequence for each configured cell line.
+The script exports `PYTHONPATH`, sets `HICP2GAN_DATA_ROOT`, and runs the three stages in order for each configured cell line.
 
 ---
 
-## 2. Training (HiCP2GAN)
+## Training (HiCP2GAN)
 
-**Entrypoint:** `HiCP2GAN_train.py` (same code as the legacy name `HiCFoundGAN_PnP.py` if present as a symlink).
+**Entrypoint:** `HiCP2GAN_train.py` (legacy symlink name: `HiCFoundGAN_PnP.py`).
 
-Training loads:
+- **Generator:** any `Models.*` class you pass (default `Models.HiCARN_1.Generator`).
+- **Discriminator:** HiCFoundation ViT trunk + head — supply **`--foundation_ckpt`** (weights are **not** bundled here).
 
-- **Generator:** any module under `Models/` exposing the chosen class (default `Models.HiCARN_1.Generator`).
-- **Discriminator:** HiCFoundation ViT trunk + head; requires **`--foundation_ckpt`** (your pretrained weights, not shipped in this repo).
-
-Minimal example (paths must match where your `.npz` files were written, often `data_40_40`):
+Example (adjust paths to your `data_40_40` layout):
 
 ```bash
 python HiCP2GAN_train.py \
@@ -104,24 +217,13 @@ python HiCP2GAN_train.py \
   --batch_size 64
 ```
 
-Useful flags (non-exhaustive; see **`python HiCP2GAN_train.py --help`**):
-
-| Flag | Role |
-|------|------|
-| `--gen_module` / `--gen_class` | Plug-in generator (e.g. `Models.HiCARN_2`, `Models.DeepHiC`, …) |
-| `--gen_kwargs` | JSON dict for the generator constructor |
-| `--foundation_ctor_module` / `--foundation_ctor_class` | ViT factory (defaults can be set in code) |
-| `--num_transformer_layers` | How many transformer blocks feed the discriminator trunk |
-| `--adv_weight`, `--l1_weight`, `--feat_weight` | Loss balance |
-| `--out_dir` | Checkpoints, curves, and per-epoch validation metrics |
-
-Validation reports PSNR / SSIM / GenomeDISCO-style metrics via `Utils/`.
+See **`python HiCP2GAN_train.py --help`** for all flags (`--gen_kwargs`, loss weights, `out_dir`, etc.). Validation logs PSNR / SSIM / GenomeDISCO-style metrics using `Utils/`.
 
 ---
 
-## 3. Inference / testing (`predict_40x40.py`)
+## Inference / testing (`predict_40x40.py`)
 
-**Entrypoint:** `predict_40x40.py` — loads a **trained generator checkpoint** (not the full GAN bundle unless you adapt the loader) and runs patch-wise forward on a `.npz` produced by `data/Generate.py`.
+Loads a **generator** checkpoint and runs patch-wise prediction on a test `.npz` from preprocessing:
 
 ```bash
 python predict_40x40.py \
@@ -133,13 +235,31 @@ python predict_40x40.py \
   --cuda 0
 ```
 
-The script resolves the input file under `{root_dir}/{cell_line}/data_40_40/`, then `…/data/`, then legacy `{root_dir}/data/`. Writes per-chromosome predictions under:
+| Argument | Description |
+|----------|-------------|
+| `-c` | Cell line (used for paths under `root_dir`). |
+| `-f` | NPZ **filename** (resolved under `…/data_40_40/`, then `…/data/`, then legacy `data/`). |
+| `-m` | One of **`HiCARN_1`**, **`HiCARN_2`**, **`DeepHiC`** (extend in script for other `Models/`). |
+| `-ckpt` | Path to generator weights (`.pytorch` / compatible). |
+| `--cuda` | GPU id, or CPU behavior per script logic. |
 
-`{root_dir}/predict/{cell_line}/predict_chr{N}_{low_res}.npz`.
+Outputs: `{root_dir}/predict/{cell_line}/predict_chr{N}_{low_res}.npz`.
 
-**Supported `-m` values in this script:** `HiCARN_1`, `HiCARN_2`, `DeepHiC` (see the `if model == …` branches in `predict_40x40.py`). Extending to other `Models/` definitions follows the same pattern.
+**Note:** The original HiCARN predictor warns that reconstruction can require **very large host RAM**; plan resources accordingly.
 
-**Resource note:** The original HiCARN predictor warns that full runs can require **very large RAM**; adjust batch size / parallelism only after inspecting `predict_40x40.py` if you hit memory limits.
+---
+
+## Accessing predicted `.npz` files
+
+Each per-chromosome file stores arrays compressed by NumPy. The enhanced map is typically under the key **`hicarn`**; **`compact`** holds indices for sparse reconstruction (see `predict_40x40.py` / `Utils.io.spreadM` usage).
+
+Example:
+
+```python
+import numpy as np
+d = np.load("path/to/predict_chr20_40kb.npz", allow_pickle=True)
+hr = d["hicarn"]
+```
 
 ---
 
@@ -150,8 +270,8 @@ The script resolves the input file under `{root_dir}/{cell_line}/data_40_40/`, t
 | `data/` | `Read_Data.py`, `Downsample.py`, `Generate.py`, `Arg_Parser.py` |
 | `scripts/generate_data_all_cell_lines.sh` | Optional multi-cell preprocessing driver |
 | `Models/` | Generator architectures (`HiCARN_1`, `HiCARN_2`, `DeepHiC`, `DiCARN`, …) |
-| `Utils/` | I/O, SSIM, GenomeDISCO helpers for training / metrics |
-| `FoundationGANWorks/` | HiCFoundation **code** for the discriminator (download weights separately) |
+| `Utils/` | I/O, SSIM, GenomeDISCO, checkpoints, etc. |
+| `FoundationGANWorks/` | HiCFoundation **code** for the discriminator (weights: separate download) |
 | `HiCP2GAN_train.py` | Main training CLI |
 | `predict_40x40.py` | 40×40 patch inference |
 
@@ -159,4 +279,4 @@ The script resolves the input file under `{root_dir}/{cell_line}/data_40_40/`, t
 
 ## Citation
 
-If you use this code, please cite the HiCP2GAN / HiCARN / HiCFoundation works referenced in your paper.
+If you use this code, please cite the HiCP2GAN manuscript and the original HiCARN / HiCFoundation references appropriate to your study.
