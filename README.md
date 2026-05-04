@@ -1,4 +1,4 @@
-# HiCP2GAN
+# HiCP2GAN: A Plug and Play Foundation Model-based GAN for Hi-C Enhancement
 
 Plug-and-play Hi-C enhancement: a **trainable generator** from `Models/` plus a **HiCFoundation** vision backbone used as the discriminator (`HiCP2GAN_train.py`). This repository includes **standalone data preprocessing** (HiCARN-style), **training**, and **40×40 inference**.
 
