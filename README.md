@@ -1,6 +1,6 @@
 # HiCP2GAN: A plug-and-play foundation model–based GAN for Hi-C enhancement
 
-**HiCP2GAN** is a plug-and-play adversarial framework for Hi-C super-resolution: a **trainable generator** from `Models/` is paired with a **HiCFoundation** vision transformer used as the **discriminator** (`HiCP2GAN_train.py`). This repository ships **standalone HiCARN-style data preprocessing** (`data/`), **training**, and **40×40 inference** (`predict_40x40.py`).
+**HiCP2GAN** is a plug-and-play adversarial framework for Hi-C super-resolution: a **trainable generator** from `Models/` is paired with a **HiCFoundation** vision transformer used as the **discriminator** (`HiCP2GAN_train.py`). This repository ships **standalone data preprocessing** (`data/`), **training**, and **40×40 inference** (`predict_40x40.py`).
 
 Bioinformatics Lab, University of Colorado Colorado Springs
 
