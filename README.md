@@ -32,6 +32,17 @@ Email: [oluwatosin.oluwadare@unt.edu](mailto:oluwatosin.oluwadare@unt.edu)
 - **Preprocessing:** three independent scripts (`Read_Data.py`, `Downsample.py`, `Generate.py`) under `data/`, plus an optional multi-cell driver in `scripts/`.
 - **Training:** `HiCP2GAN_train.py` optimizes the generator and foundation-based discriminator on paired LR/HR patch `.npz` files.
 - **Inference:** `predict_40x40.py` loads a saved **generator** checkpoint and writes chromosome-level predictions under `predict/`.
+- **Weights:** pretrained checkpoints are **not** on GitHub; download the bundle from [Zenodo](https://zenodo.org/uploads/20030290) into `checkpoints/` (see **Pretrained checkpoints** below).
+
+---
+
+## Pretrained checkpoints (`checkpoints/`)
+
+The GitHub repository **does not include** trained weights (they are large and would exceed normal hosting limits). After cloning, download the curated checkpoint bundle from **Zenodo** and unpack it so a `checkpoints/` directory sits at the **root of this repository** (next to `README.md`, `Models/`, etc.):
+
+**Download:** [Zenodo — HiCP2GAN checkpoints](https://zenodo.org/uploads/20030290)
+
+Total size is typically on the order of **~7 GB** (includes HiCFoundation `.pth.tar` files). Pass paths under **`checkpoints/`** to **`--foundation_ckpt`** (training) and **`-ckpt`** (inference); resolution-specific bundles use **`checkpoints/R16/`** and **`checkpoints/R64/`** with subfolders for conventional GANs, HiCP2GAN runs, standalone generators where present, **`pretrained/`**, and optional experiment-specific directories (e.g. Capricorn, misc).
 
 ---
 
@@ -86,7 +97,7 @@ HiCP2GAN is also distributed as a **Docker** image on Docker Hub. For a containe
    export HICP2GAN_DATA_ROOT="/path/to/your/data/tree"   # mount extra volumes if data live outside this clone
    ```
 
-   Then run preprocessing, training, or inference as documented below (e.g. `python data/Read_Data.py …`, `python HiCP2GAN_train.py …`, `python predict_40x40.py …`).
+   Then run preprocessing, training, or inference as documented below (e.g. `python data/Read_Data.py …`, `python HiCP2GAN_train.py …`, `python predict_40x40.py …`). **Weights are not in Git:** unpack the [Zenodo checkpoint bundle](https://zenodo.org/uploads/20030290) into `./checkpoints/` on the host before training or inference; with `-v "${PWD}:${PWD}"`, that folder appears at the same path inside the container.
 
 **Notes:** `--gpus all` requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). For CPU-only hosts, omit `--gpus all` (training will be slow). If your Hi-C data live outside the clone, add another `-v /host/data:/host/data` and point `HICP2GAN_DATA_ROOT` at that path.
 
@@ -198,7 +209,7 @@ The script exports `PYTHONPATH`, sets `HICP2GAN_DATA_ROOT`, and runs the three s
 **Entrypoint:** `HiCP2GAN_train.py` (legacy symlink name: `HiCFoundGAN_PnP.py`).
 
 - **Generator:** any `Models.*` class you pass (default `Models.HiCARN_1.Generator`).
-- **Discriminator:** HiCFoundation ViT trunk + head — supply **`--foundation_ckpt`** (weights are **not** bundled here).
+- **Discriminator:** HiCFoundation ViT trunk + head — supply **`--foundation_ckpt`** (after downloading weights from [Zenodo](https://zenodo.org/uploads/20030290), e.g. **`checkpoints/pretrained/hicfoundation_resolution.pth.tar`**).
 
 Example (adjust paths to your `data_40_40` layout):
 
@@ -206,7 +217,7 @@ Example (adjust paths to your `data_40_40` layout):
 python HiCP2GAN_train.py \
   --train_npz "$HICP2GAN_DATA_ROOT/GM12878/data_40_40/hicarn_10kb40kb_c40_s40_b201_nonpool_train.npz" \
   --valid_npz "$HICP2GAN_DATA_ROOT/GM12878/data_40_40/hicarn_10kb40kb_c40_s40_b201_nonpool_valid.npz" \
-  --foundation_ckpt /path/to/hicfoundation_weights.pth.tar \
+  --foundation_ckpt checkpoints/pretrained/hicfoundation_resolution.pth.tar \
   --foundation_ctor_module FoundationGANWorks.HiCFoundation.model.Vision_Transformer_count \
   --foundation_ctor_class vit_large_patch16 \
   --num_transformer_layers 11 \
@@ -231,7 +242,7 @@ python predict_40x40.py \
   -lr 40kb \
   -f hicarn_10kb40kb_c40_s40_b201_nonpool_GM12878_test.npz \
   -m HiCARN_1 \
-  -ckpt /path/to/generator_weights.pytorch \
+  -ckpt checkpoints/R64/conventional_gan/HiCARN_2_R64/03_10_18_23_finalg_10kb40kb_c40_s40_b201_nonpool_HiCARN_2_R64.pytorch \
   --cuda 0
 ```
 
@@ -274,6 +285,7 @@ hr = d["hicarn"]
 | `FoundationGANWorks/` | HiCFoundation **code** for the discriminator (weights: separate download) |
 | `HiCP2GAN_train.py` | Main training CLI |
 | `predict_40x40.py` | 40×40 patch inference |
+| `checkpoints/` | *(Not in Git.)* Download from [Zenodo](https://zenodo.org/uploads/20030290) |
 
 ---
 

@@ -9,7 +9,11 @@ venv/
 *.log
 nohup.out
 .DS_Store
-
+checkpoints.tar.gz
 # Local data and training outputs
 Data/
-**/checkpoints/
+
+# Trained weights: distributed via Zenodo (see README); do not commit large binaries
+/checkpoints/
+
+Models/**/checkpoints/
