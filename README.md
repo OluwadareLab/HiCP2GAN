@@ -10,7 +10,7 @@ Bioinformatics Lab, University of Colorado Colorado Springs
 
 Department of Computer Science  
 
-University of Colorado Colorado Springs  
+University of Colorado Colorado Springs, Colorado Springs, CO  
 
 Email: [solowofi@uccs.edu](mailto:solowofi@uccs.edu)
 
@@ -20,7 +20,7 @@ Email: [solowofi@uccs.edu](mailto:solowofi@uccs.edu)
 
 Department of Computer Science  
 
-University of Colorado Colorado Springs  
+University of North Texas, Denton TX  
 
 Email: [oluwatosin.oluwadare@unt.edu](mailto:oluwatosin.oluwadare@unt.edu)
 
